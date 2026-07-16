@@ -54,7 +54,7 @@ so there are no CORS issues in dev.
 
 ```bash
 # 0) prerequisites: Python 3.11+, Node 18+, an Anthropic API key
-export ANTHROPIC_API_KEY=sk-ant-...
+# export ANTHROPIC_API_KEY=...
 
 # 1) backend (from the project root)
 pip install -r backend/requirements.txt

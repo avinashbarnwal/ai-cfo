@@ -1,5 +1,6 @@
 """HeroCycle MFR Agent - Claude-powered review engine.
 
+
 Implements the guided Monthly Financial Review as a small state machine:
   S1 validate -> S2 plan cycles -> S3(i) evidence + judgment question
   -> S4/S5 synthesis into the final deck narrative.
@@ -19,8 +20,10 @@ import json
 import os
 import re
 from typing import Any
-
+import keyring
 from anthropic import Anthropic
+
+api_key = keyring.get_password("anthropic_key", "key")
 
 MODEL = os.environ.get("MFR_MODEL", "claude-sonnet-4-6")
 
@@ -100,7 +103,7 @@ class MFRAgent:
 
     def __init__(self, dataset: dict[str, Any], client: Anthropic | None = None):
         self.dataset = dataset
-        self.client = client or Anthropic()  # reads ANTHROPIC_API_KEY
+        self.client = client or Anthropic(api_key=api_key)  # reads ANTHROPIC_API_KEY
 
     # ------------------------------------------------------------- prompts
     def _cycle_prompt(self, cycle: dict, answers: list[dict]) -> str:

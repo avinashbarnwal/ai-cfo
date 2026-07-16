@@ -19,3 +19,15 @@ export const runCycle = (cycleIndex, answers) =>
   request("/api/cycle", { method: "POST", body: JSON.stringify({ cycle_index: cycleIndex, answers }) });
 export const synthesize = (answers) =>
   request("/api/synthesize", { method: "POST", body: JSON.stringify({ answers }) });
+
+export async function uploadWorkbooks(financialsFile, driversFile) {
+  const form = new FormData();
+  form.append("financials", financialsFile);
+  form.append("drivers", driversFile);
+  const res = await fetch("/api/upload", { method: "POST", body: form }); // browser sets multipart headers
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Upload failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}

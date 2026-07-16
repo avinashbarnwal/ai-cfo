@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, BarChart,
 } from "recharts";
-import { getValidation, getCycles, runCycle, synthesize } from "./api.js";
+import { getValidation, getCycles, runCycle, synthesize, uploadWorkbooks } from "./api.js";
 
 /* ---------------- design tokens ---------------- */
 const T = {
@@ -158,6 +158,61 @@ function QuestionBlock({ question, onAnswer }) {
   );
 }
 
+/* Upload panel: pick the two month-end workbooks and parse them */
+function UploadPanel({ onParsed }) {
+  const [finFile, setFinFile] = useState(null);
+  const [drvFile, setDrvFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const slot = (label, file, setFile, id) => (
+    <label htmlFor={id} style={{
+      flex: 1, minWidth: 220, cursor: "pointer", borderRadius: 10, padding: "14px 16px",
+      border: `1.5px dashed ${file ? T.good : T.line}`, background: file ? "#F0F7F3" : T.card, display: "block",
+    }}>
+      <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: T.sub, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: file ? T.good : T.ink }}>
+        {file ? file.name : "Choose .xlsx file…"}
+      </div>
+      <input id={id} type="file" accept=".xlsx,.xlsm" style={{ display: "none" }}
+        onChange={(e) => setFile(e.target.files[0] || null)} />
+    </label>
+  );
+
+  const parse = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const validation = await uploadWorkbooks(finFile, drvFile);
+      onParsed(validation);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ background: T.paper, border: `1px solid ${T.line}`, borderRadius: 12, padding: 18, marginBottom: 18 }}>
+      <Eyebrow>Month-end input files</Eyebrow>
+      <div style={{ fontSize: 13.5, color: T.sub, margin: "6px 0 12px" }}>
+        Upload the two close workbooks: the financial pack (P&L, trend, EBITDA bridge, cash) and the
+        operating drivers pack (channels, segments, KPIs). Or continue with the bundled demo data below.
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {slot("1 · Financial workbook", finFile, setFinFile, "fin-upload")}
+        {slot("2 · Drivers workbook", drvFile, setDrvFile, "drv-upload")}
+      </div>
+      <button onClick={parse} disabled={!finFile || !drvFile || busy} style={{
+        marginTop: 12, padding: "10px 22px", borderRadius: 8, border: "none",
+        cursor: !finFile || !drvFile || busy ? "not-allowed" : "pointer",
+        background: !finFile || !drvFile || busy ? T.line : T.ink,
+        color: !finFile || !drvFile || busy ? T.sub : "#fff",
+        fontSize: 14, fontWeight: 700, fontFamily: T.sans,
+      }}>
+        {busy ? "Parsing workbooks…" : "Parse workbooks"}
+      </button>
+      {err && <div style={{ color: T.bad, fontSize: 13, marginTop: 10 }}>{err}</div>}
+    </div>
+  );
+}
+
 /* ---------------- main app ---------------- */
 export default function App() {
   const [stage, setStage] = useState("intro"); // intro | cycle | synthesis | deck
@@ -225,24 +280,27 @@ export default function App() {
 
         {plan.length > 0 && <ChainStepper steps={steps} active={active} />}
 
-        {/* S1: validation */}
+        {/* S1: upload + validation */}
         {stage === "intro" && validation && (
           <div>
+            <UploadPanel onParsed={(v) => setValidation({ ...v, source: v.can_proceed ? "uploaded" : validation.source })} />
             <Eyebrow>Input validation</Eyebrow>
             <div style={{ fontSize: 20, fontWeight: 700, margin: "6px 0 14px" }}>
               {validation.can_proceed ? "Workbooks parsed. The MFR can proceed." : "Critical sections missing from the workbooks."}
             </div>
             <div style={{ background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
               {[
+                ["Data source", validation.source === "uploaded" ? "Uploaded workbooks" : "Bundled demo workbooks"],
                 ["Source files", `${validation.source_files?.financials} · ${validation.source_files?.drivers}`],
-                ["Period detected", validation.period],
+                ["Period detected", `${validation.company} · ${validation.period}`],
                 ["Sections found", validation.sections_found?.join(", ")],
+                ["Missing sections", validation.missing_critical?.length ? validation.missing_critical.join(", ") : "None"],
                 ["Usable comparisons", validation.usable_comparisons?.join(" · ")],
                 ["Data gaps", validation.data_gaps?.join(", ")],
               ].map(([k, v], i, arr) => (
                 <div key={k} style={{ display: "flex", padding: "11px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.line}` : "none", fontSize: 13.5 }}>
                   <div style={{ width: 190, color: T.sub, flexShrink: 0 }}>{k}</div>
-                  <div style={{ fontWeight: k === "Data gaps" ? 600 : 400, color: k === "Data gaps" ? T.bad : T.ink }}>{v}</div>
+                  <div style={{ fontWeight: k === "Data gaps" || k === "Missing sections" ? 600 : 400, color: (k === "Data gaps" || (k === "Missing sections" && v !== "None")) ? T.bad : T.ink }}>{v}</div>
                 </div>
               ))}
             </div>
