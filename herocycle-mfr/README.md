@@ -57,7 +57,7 @@ so there are no CORS issues in dev.
 # export ANTHROPIC_API_KEY=...
 
 # 1) backend (from the project root)
-pip install -r backend/requirements.txt
+conda env create -f mfr.yml
 uvicorn backend.main:app --reload --port 8000
 
 # 2) frontend (second terminal)

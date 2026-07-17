@@ -172,4 +172,4 @@ Provide 3 to 4 agenda rows."""
 
     def synthesize(self, answers: list[dict]) -> dict[str, Any]:
         """S4/S5: final deck narrative from the CFO's judgments."""
-        return self._complete_json(self._synthesis_prompt(answers), max_tokens=2000)
+        return self._complete_json(self._synthesis_prompt(answers), max_tokens=4000)
