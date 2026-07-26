@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keeper — Autonomous AR Agent</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="brand">
+      <h1>Keeper</h1>
+      <span class="sub">Autonomous AR Agent · Solstice Industrial Supply</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="status"><span class="dot"></span> Monitoring 6 accounts</div>
+      <button class="btn-primary" id="briefBtn">Generate Morning Briefing</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="num" id="kpiAuto">—</div><div class="lbl">Actions autonomous</div></div>
+    <div class="kpi"><div class="num" id="kpiPending">—</div><div class="lbl">Awaiting your sign-off</div></div>
+    <div class="kpi"><div class="num" id="kpiAudit">100%</div><div class="lbl">Actions logged</div></div>
+  </div>
+
+  <div id="errorBanner" style="display:none;" class="error-banner"></div>
+  <div id="briefingBox" style="display:none;" class="briefing"></div>
+  <div id="emptyState" class="empty">
+    <strong>Nothing processed yet</strong>
+    Generate the morning briefing and Keeper will read every open invoice, weigh payment history and past behavior, and decide what to do about each one.
+  </div>
+
+  <div class="grid" id="mainGrid" style="display:none;">
+    <div class="panel">
+      <div class="panel-head"><h2>Worklist</h2><span class="count" id="worklistCount">0 items</span></div>
+      <div class="panel-body" id="worklistBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Account detail</h2></div>
+      <div class="panel-body" id="detailBody" style="max-height:none;">
+        <div class="detail-empty">Select an item from the worklist to see Keeper's reasoning, account memory, and any drafted outreach.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower-grid" id="lowerGrid" style="display:none;">
+    <div class="panel">
+      <div class="panel-head"><h2>Approval queue · L3</h2><span class="count" id="queueCount">0 pending</span></div>
+      <div id="queueBody"><div class="queue-empty">Nothing waiting on you right now.</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Audit trail</h2><span class="count" id="auditCount">0 entries</span></div>
+      <div id="auditBody" style="max-height:320px; overflow-y:auto;"><div class="queue-empty">No actions logged yet.</div></div>
+    </div>
+  </div>
+
+  <div class="panel ask-panel">
+    <div class="panel-head"><h2>Ask Keeper</h2><span class="count">grounded in the data above</span></div>
+    <div class="chat-log" id="chatLog"><div class="chat-empty">Try: "What's our cash position?" or "Which account is riskiest right now?"</div></div>
+    <form class="ask-form" id="askForm">
+      <input type="text" id="askInput" placeholder="Ask about cash position, risk, or a specific account…" autocomplete="off" />
+      <button class="btn-secondary" type="submit" id="askBtn">Ask</button>
+    </form>
+  </div>
+
+  <div class="foot-note">Prototype · sample data only · frontend talks to a local backend which calls the Claude API</div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keeper — Autonomous AR Agent</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#14181D;
+  --panel:#1B2027;
+  --panel-raised:#232933;
+  --border:#2C333D;
+  --text:#E8E6DF;
+  --text-muted:#8B92A0;
+  --brass:#C9A227;
+  --brass-dim: #7d6a24;
+  --sage:#6FA287;
+  --rust:#C0553A;
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'Inter', system-ui, sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+body{ padding:28px; min-height:100vh; }
+a{ color:inherit; }
+
+button{ font-family:var(--font-body); cursor:pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible{
+  outline: 2px solid var(--brass); outline-offset: 2px;
+}
+button:disabled{ opacity:.5; cursor:not-allowed; }
+
+.wrap{ max-width:1180px; margin:0 auto; }
+
+/* ---- header ---- */
+.header{
+  display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px;
+  border-bottom:1px solid var(--border); padding-bottom:20px; margin-bottom:20px;
+}
+.brand{ display:flex; align-items:baseline; gap:12px; }
+.brand h1{
+  font-family:var(--font-display); font-weight:700; font-size:32px; margin:0;
+  letter-spacing:0.01em;
+}
+.brand .sub{ color:var(--text-muted); font-size:13px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.08em; }
+.status{ display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; color:var(--sage); }
+.status .dot{ width:7px; height:7px; border-radius:50%; background:var(--sage); box-shadow:0 0 0 3px rgba(111,162,135,0.18); }
+
+.btn-primary{
+  background:var(--brass); color:#14181D; border:none; border-radius:3px;
+  padding:11px 18px; font-weight:600; font-size:14px; letter-spacing:.01em;
+}
+.btn-primary:hover:not(:disabled){ background:#dcb436; }
+.btn-secondary{
+  background:transparent; color:var(--text); border:1px solid var(--border); border-radius:3px;
+  padding:10px 16px; font-size:13px;
+}
+.btn-secondary:hover:not(:disabled){ border-color:var(--text-muted); }
+.btn-approve{ background:var(--sage); color:#0f1712; border:none; border-radius:3px; padding:8px 14px; font-weight:600; font-size:13px; }
+.btn-approve:hover:not(:disabled){ filter:brightness(1.1); }
+.btn-reject{ background:transparent; color:var(--rust); border:1px solid var(--rust); border-radius:3px; padding:8px 14px; font-weight:600; font-size:13px; }
+.btn-reject:hover:not(:disabled){ background:rgba(192,85,58,0.1); }
+
+/* ---- kpi bar ---- */
+.kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:24px; }
+.kpi{ background:var(--panel); padding:16px 20px; }
+.kpi .num{ font-family:var(--font-display); font-size:26px; font-weight:600; color:var(--brass); }
+.kpi .lbl{ font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+/* ---- briefing ---- */
+.briefing{
+  background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--brass);
+  border-radius:3px; padding:16px 18px; margin-bottom:24px; font-size:14px; line-height:1.55;
+}
+.briefing .eyebrow{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--brass); margin-bottom:6px; }
+.briefing .cash{ color:var(--text-muted); margin-top:8px; font-size:13px; }
+
+.empty{
+  border:1px dashed var(--border); border-radius:4px; padding:40px 24px; text-align:center; color:var(--text-muted);
+  margin-bottom:24px; font-size:14px;
+}
+.empty strong{ color:var(--text); display:block; margin-bottom:6px; font-family:var(--font-display); font-size:18px; font-weight:600; }
+
+.error-banner{
+  background:rgba(192,85,58,0.12); border:1px solid var(--rust); color:#e8c3b7; border-radius:3px;
+  padding:12px 16px; margin-bottom:20px; font-size:13px;
+}
+
+/* ---- main grid ---- */
+.grid{ display:grid; grid-template-columns:380px 1fr; gap:20px; margin-bottom:24px; }
+@media (max-width:860px){ .grid{ grid-template-columns:1fr; } }
+
+.panel{ background:var(--panel); border:1px solid var(--border); border-radius:4px; }
+.panel-head{ padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.panel-head h2{ font-family:var(--font-display); font-size:15px; font-weight:600; margin:0; }
+.panel-head .count{ font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.panel-body{ padding:8px; max-height:560px; overflow-y:auto; }
+
+.worklist-item{
+  padding:12px 12px; border-radius:3px; margin-bottom:6px; cursor:pointer; border:1px solid transparent;
+  transition: background .12s ease;
+}
+.worklist-item:hover{ background:var(--panel-raised); }
+.worklist-item.selected{ background:var(--panel-raised); border-color:var(--brass-dim); }
+.wi-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.wi-name{ font-weight:600; font-size:13.5px; }
+.wi-amt{ font-family:var(--font-mono); font-size:13px; color:var(--text-muted); }
+.wi-action{ font-size:12.5px; color:var(--text-muted); margin-bottom:6px; }
+.wi-meta{ display:flex; align-items:center; gap:8px; }
+
+.tier-badge{
+  font-family:var(--font-mono); font-size:10px; font-weight:600; width:22px; height:22px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center; border:1.5px dashed currentColor; flex-shrink:0;
+}
+.tier-L1{ color:#8B92A0; }
+.tier-L2{ color:var(--sage); }
+.tier-L3{ color:var(--brass); }
+.tier-L4{ color:var(--rust); }
+
+.status-pill{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.04em; padding:2px 7px; border-radius:10px;
+}
+.status-auto_executed{ background:rgba(111,162,135,.15); color:var(--sage); }
+.status-pending_approval{ background:rgba(201,162,39,.15); color:var(--brass); }
+.status-approved{ background:rgba(111,162,135,.15); color:var(--sage); }
+.status-rejected{ background:rgba(192,85,58,.15); color:var(--rust); }
+.status-flagged{ background:rgba(192,85,58,.12); color:#d99b86; }
+
+/* ---- detail panel ---- */
+.detail-body{ padding:20px; }
+.detail-empty{ padding:60px 20px; text-align:center; color:var(--text-muted); font-size:13.5px; }
+.detail-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:4px; }
+.detail-head h3{ font-family:var(--font-display); font-size:20px; font-weight:600; margin:0; }
+.detail-sub{ color:var(--text-muted); font-size:12.5px; margin-bottom:16px; font-family:var(--font-mono); }
+.detail-section{ margin-bottom:18px; }
+.detail-section .lbl{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--brass); margin-bottom:6px; }
+.detail-section p{ margin:0; font-size:13.5px; line-height:1.55; color:var(--text); }
+.confidence-row{ display:flex; align-items:center; gap:10px; margin-top:4px; }
+.conf-track{ flex:1; height:5px; background:var(--panel-raised); border-radius:3px; overflow:hidden; }
+.conf-fill{ height:100%; background:var(--brass); }
+.conf-num{ font-family:var(--font-mono); font-size:12px; color:var(--text-muted); }
+
+.memory-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:600px){ .memory-grid{ grid-template-columns:1fr; } }
+.memory-item{ background:var(--panel-raised); border-radius:3px; padding:10px 12px; }
+.memory-item .lbl{ font-size:10.5px; }
+.memory-item p{ font-size:12.5px; color:var(--text-muted); }
+
+.draft-box{
+  background:var(--panel-raised); border:1px solid var(--border); border-radius:3px; padding:12px 14px;
+  font-size:13px; line-height:1.55; white-space:pre-wrap; font-family:var(--font-mono);
+}
+
+.action-row{ display:flex; gap:10px; align-items:center; margin-top:18px; position:relative; }
+.executed-note{ font-size:12.5px; color:var(--text-muted); font-family:var(--font-mono); }
+
+.stamp{
+  position:absolute; top:-46px; right:0; font-family:var(--font-display); font-weight:700; font-size:20px;
+  padding:6px 14px; border:3px solid; border-radius:5px; transform:rotate(-8deg) scale(1.5); opacity:0;
+  letter-spacing:.06em; pointer-events:none; text-transform:uppercase;
+}
+.stamp.show{ animation: stampIn .5s ease-out forwards; }
+.stamp.approve{ color:var(--sage); border-color:var(--sage); }
+.stamp.reject{ color:var(--rust); border-color:var(--rust); }
+@keyframes stampIn{
+  0%{ opacity:0; transform:rotate(-8deg) scale(2.4); }
+  60%{ opacity:1; transform:rotate(-8deg) scale(0.95); }
+  100%{ opacity:1; transform:rotate(-8deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce){
+  .stamp.show{ animation:none; opacity:1; transform:rotate(-8deg) scale(1); }
+}
+
+/* ---- lower row: approval queue + audit trail ---- */
+.lower-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+@media (max-width:860px){ .lower-grid{ grid-template-columns:1fr; } }
+
+.queue-item{ padding:10px 12px; border-bottom:1px solid var(--border); font-size:12.5px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.queue-item:last-child{ border-bottom:none; }
+.queue-item .qi-main{ flex:1; min-width:0; }
+.queue-item .qi-name{ font-weight:600; margin-bottom:2px; }
+.queue-item .qi-action{ color:var(--text-muted); }
+.queue-empty{ padding:24px 16px; text-align:center; color:var(--text-muted); font-size:12.5px; }
+
+.audit-row{ padding:9px 12px; border-bottom:1px solid var(--border); font-size:12px; display:flex; gap:10px; }
+.audit-row:last-child{ border-bottom:none; }
+.audit-time{ font-family:var(--font-mono); color:var(--text-muted); flex-shrink:0; width:52px; }
+.audit-main{ flex:1; }
+.audit-main .a-title{ color:var(--text); }
+.audit-main .a-title b{ font-weight:600; }
+.audit-main .a-reason{ color:var(--text-muted); font-size:11.5px; margin-top:2px; }
+
+/* ---- ask box ---- */
+.ask-panel{ margin-bottom:8px; }
+.chat-log{ padding:16px; max-height:280px; overflow-y:auto; }
+.chat-empty{ color:var(--text-muted); font-size:13px; padding:8px 4px; }
+.chat-msg{ margin-bottom:14px; font-size:13.5px; line-height:1.55; }
+.chat-msg .who{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:4px; }
+.chat-msg.user .who{ color:var(--brass); }
+.chat-msg.agent .who{ color:var(--sage); }
+.ask-form{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); }
+.ask-form input{
+  flex:1; background:var(--panel-raised); border:1px solid var(--border); border-radius:3px; color:var(--text);
+  padding:10px 12px; font-family:var(--font-body); font-size:13.5px;
+}
+.ask-form input::placeholder{ color:var(--text-muted); }
+
+.foot-note{ text-align:center; color:var(--text-muted); font-size:11.5px; margin-top:8px; font-family:var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="brand">
+      <h1>Keeper</h1>
+      <span class="sub">Autonomous AR Agent · Solstice Industrial Supply</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="status"><span class="dot"></span> Monitoring 6 accounts</div>
+      <button class="btn-primary" id="briefBtn">Generate Morning Briefing</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="num" id="kpiAuto">—</div><div class="lbl">Actions autonomous</div></div>
+    <div class="kpi"><div class="num" id="kpiPending">—</div><div class="lbl">Awaiting your sign-off</div></div>
+    <div class="kpi"><div class="num" id="kpiAudit">100%</div><div class="lbl">Actions logged</div></div>
+  </div>
+
+  <div id="errorBanner" style="display:none;" class="error-banner"></div>
+  <div id="briefingBox" style="display:none;" class="briefing"></div>
+  <div id="emptyState" class="empty">
+    <strong>Nothing processed yet</strong>
+    Generate the morning briefing and Keeper will read every open invoice, weigh payment history and past behavior, and decide what to do about each one.
+  </div>
+
+  <div class="grid" id="mainGrid" style="display:none;">
+    <div class="panel">
+      <div class="panel-head"><h2>Worklist</h2><span class="count" id="worklistCount">0 items</span></div>
+      <div class="panel-body" id="worklistBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Account detail</h2></div>
+      <div class="panel-body" id="detailBody" style="max-height:none;">
+        <div class="detail-empty">Select an item from the worklist to see Keeper's reasoning, account memory, and any drafted outreach.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower-grid" id="lowerGrid" style="display:none;">
+    <div class="panel">
+      <div class="panel-head"><h2>Approval queue · L3</h2><span class="count" id="queueCount">0 pending</span></div>
+      <div id="queueBody"><div class="queue-empty">Nothing waiting on you right now.</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Audit trail</h2><span class="count" id="auditCount">0 entries</span></div>
+      <div id="auditBody" style="max-height:320px; overflow-y:auto;"><div class="queue-empty">No actions logged yet.</div></div>
+    </div>
+  </div>
+
+  <div class="panel ask-panel">
+    <div class="panel-head"><h2>Ask Keeper</h2><span class="count">grounded in the data above</span></div>
+    <div class="chat-log" id="chatLog"><div class="chat-empty">Try: "What's our cash position?" or "Which account is riskiest right now?"</div></div>
+    <form class="ask-form" id="askForm">
+      <input type="text" id="askInput" placeholder="Ask about cash position, risk, or a specific account…" autocomplete="off" />
+      <button class="btn-secondary" type="submit" id="askBtn">Ask</button>
+    </form>
+  </div>
+
+  <div class="foot-note">Prototype · sample data only · calls the Claude API live for reasoning, drafting, and Q&amp;A</div>
+
+</div>
+
+<script>
+const COMPANY = "Solstice Industrial Supply";
+
+const customers = [
+  { id:"c1", name:"Nordwave Logistics", segment:"Enterprise · Freight",
+    invoice:{ id:"INV-4471", amount:48200, dueDate:"2026-06-10", daysOverdue:44 },
+    memory:{
+      paymentPattern:"Pays reliably but always 15-20 days late; finance contact has said before that they prefer a call to an email reminder.",
+      pastDisputes:"One dispute in Feb 2026 over a freight surcharge — resolved, credit note issued.",
+      brokenPromises:"Promised payment by June 20. Missed it. No follow-up since.",
+      lastContact:"Email reminder sent June 15, no response."
+    }},
+  { id:"c2", name:"Baxter & Kline Manufacturing", segment:"Mid-market · Industrial",
+    invoice:{ id:"INV-4502", amount:12750, dueDate:"2026-07-01", daysOverdue:23 },
+    memory:{
+      paymentPattern:"Paid on time in 9 of the last 10 cycles. This invoice is an outlier for them.",
+      pastDisputes:"None on record.",
+      brokenPromises:"None on record.",
+      lastContact:"No contact yet this cycle."
+    }},
+  { id:"c3", name:"Coastal Retail Group", segment:"SMB · Retail",
+    invoice:{ id:"INV-4390", amount:6100, dueDate:"2026-05-02", daysOverdue:83 },
+    memory:{
+      paymentPattern:"Chronically slow payer, averaging 60+ days late across the last 4 invoices.",
+      pastDisputes:"Currently disputing this invoice, claiming short shipment. No evidence submitted yet.",
+      brokenPromises:"Promised a partial payment twice in May. Neither arrived.",
+      lastContact:"Collections call on June 28 — customer said 'accounting is looking into it.'"
+    }},
+  { id:"c4", name:"Vantage Foods Co", segment:"Enterprise · Food & Bev",
+    invoice:{ id:"INV-4515", amount:91300, dueDate:"2026-07-15", daysOverdue:9 },
+    memory:{
+      paymentPattern:"Large, high-trust account. Always pays within terms, occasionally early.",
+      pastDisputes:"None on record.",
+      brokenPromises:"None on record.",
+      lastContact:"None needed historically."
+    }},
+  { id:"c5", name:"Ironclad Builders", segment:"Mid-market · Construction",
+    invoice:{ id:"INV-4448", amount:27400, dueDate:"2026-06-20", daysOverdue:34 },
+    memory:{
+      paymentPattern:"Seasonal cash flow — historically catches up within 45 days once a project draw clears.",
+      pastDisputes:"None on record.",
+      brokenPromises:"Promised payment 'once the Riverside draw clears,' no date given.",
+      lastContact:"Voice call June 22 — promise to pay logged, no date attached."
+    }},
+  { id:"c6", name:"Prairie Grain Cooperative", segment:"SMB · Agriculture",
+    invoice:{ id:"INV-4530", amount:15200, dueDate:"2026-07-18", daysOverdue:6 },
+    memory:{
+      paymentPattern:"New account, only 2 invoices on record, both paid slightly late.",
+      pastDisputes:"None on record.",
+      brokenPromises:"None on record.",
+      lastContact:"None yet."
+    }}
+];
+
+const state = {
+  briefingSummary:null, cashNote:null,
+  worklist:[], selectedId:null,
+  auditTrail:[], loadingBriefing:false,
+  chatLog:[], chatLoading:false,
+  stampFor:null, stampKind:null
+};
+
+async function callClaude(system, userText, maxTokens){
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens: maxTokens || 1000,
+      system: system,
+      messages:[{ role:"user", content:userText }]
+    })
+  });
+  if(!res.ok){ throw new Error("API error " + res.status); }
+  const data = await res.json();
+  const textBlock = (data.content || []).find(b => b.type === "text");
+  if(!textBlock){ throw new Error("No text in response"); }
+  return textBlock.text;
+}
+
+function stripFences(t){
+  return t.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+}
+
+function fmtMoney(n){
+  return "$" + Number(n).toLocaleString("en-US");
+}
+function nowLabel(){
+  const d = new Date();
+  return d.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit" });
+}
+
+// ---------- Briefing ----------
+const BRIEFING_SYSTEM = `You are Keeper, an autonomous accounts receivable agent working for ${COMPANY}. You read open invoices and everything known about each customer, then decide the single best next action for each one.
+
+Tier definitions:
+L1 = read-only observation. No outreach, just a flag worth knowing about.
+L2 = low-stakes autonomous action, no approval needed (e.g. a routine reminder email).
+L3 = an action that needs a human's sign-off before it happens (e.g. an escalation call, a settlement offer, routing a dispute).
+L4 = would change financial records or post to the ERP. Always human-in-the-loop; you only flag it, you never execute it.
+
+For every invoice given to you, decide the single best next action, its tier, and a confidence score from 0-100. Ground your reasoning in the specific facts you were given about that account (payment pattern, days overdue, disputes, broken promises) — do not write generic reasoning that could apply to any account. For L2 and L3 actions that involve outreach, draft the actual message (a short email, or call talking points) in that customer's specific context. Order the worklist by business risk (amount at risk combined with likelihood of further delay), highest risk first.
+
+Return ONLY valid JSON, with no markdown fences and no commentary before or after, matching exactly this shape:
+{"briefing_summary": "2-3 sentence summary of the overall AR picture this morning", "cash_position_note": "1 sentence on what's collectible soon vs at risk", "worklist": [{"id": "customer id you were given", "customer": "name", "invoice_ref": "id", "amount": 0, "days_overdue": 0, "tier": "L1", "action": "short label, under 6 words", "reasoning": "2-3 sentences, specific to this account", "confidence": 0, "draft_message": "the drafted message, or null if this action has no outreach"}]}`;
+
+async function generateBriefing(){
+  if(state.loadingBriefing) return;
+  state.loadingBriefing = true;
+  document.getElementById("briefBtn").disabled = true;
+  document.getElementById("briefBtn").textContent = "Reading the ledger…";
+  document.getElementById("errorBanner").style.display = "none";
+
+  try{
+    const payload = JSON.stringify(customers.map(c => ({
+      id:c.id, customer:c.name, segment:c.segment, invoice:c.invoice, memory:c.memory
+    })));
+    const raw = await callClaude(BRIEFING_SYSTEM, "Here is today's open AR data:\\n" + payload, 1400);
+    const parsed = JSON.parse(stripFences(raw));
+
+    state.briefingSummary = parsed.briefing_summary;
+    state.cashNote = parsed.cash_position_note;
+    state.worklist = (parsed.worklist || []).map(item => {
+      let status;
+      if(item.tier === "L1" || item.tier === "L2"){ status = "auto_executed"; }
+      else if(item.tier === "L3"){ status = "pending_approval"; }
+      else { status = "flagged"; }
+      return { ...item, status, ts: nowLabel() };
+    });
+
+    state.worklist.forEach(item => {
+      if(item.status === "auto_executed"){
+        state.auditTrail.push({
+          time: item.ts, customer:item.customer, action:item.action, tier:item.tier,
+          reasoning:item.reasoning, confidence:item.confidence, status:"Executed automatically"
+        });
+      } else if(item.status === "flagged"){
+        state.auditTrail.push({
+          time: item.ts, customer:item.customer, action:item.action, tier:item.tier,
+          reasoning:item.reasoning, confidence:item.confidence, status:"Flagged — needs manual ERP action"
+        });
+      }
+    });
+
+    render();
+  } catch(err){
+    showError("Keeper couldn't complete the briefing (" + err.message + "). Try again.");
+  } finally {
+    state.loadingBriefing = false;
+    document.getElementById("briefBtn").disabled = false;
+    document.getElementById("briefBtn").textContent = "Generate Morning Briefing";
+  }
+}
+
+function showError(msg){
+  const el = document.getElementById("errorBanner");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+// ---------- Approve / reject ----------
+async function approveItem(id){
+  const item = state.worklist.find(i => i.id + "|" + i.invoice_ref === id);
+  if(!item) return;
+  item.status = "approved";
+  state.auditTrail.unshift({
+    time: nowLabel(), customer:item.customer, action:item.action, tier:item.tier,
+    reasoning:item.reasoning, confidence:item.confidence, status:"Approved & executed by you"
+  });
+  state.stampFor = id; state.stampKind = "approve";
+  render();
+  setTimeout(() => { state.stampFor = null; render(); }, 1400);
+}
+
+function rejectItem(id){
+  const item = state.worklist.find(i => i.id + "|" + i.invoice_ref === id);
+  if(!item) return;
+  item.status = "rejected";
+  state.auditTrail.unshift({
+    time: nowLabel(), customer:item.customer, action:item.action, tier:item.tier,
+    reasoning:item.reasoning, confidence:item.confidence, status:"Rejected by you"
+  });
+  state.stampFor = id; state.stampKind = "reject";
+  render();
+  setTimeout(() => { state.stampFor = null; render(); }, 1400);
+}
+
+// ---------- Ask Keeper ----------
+async function askKeeper(question){
+  state.chatLog.push({ role:"user", text: question });
+  render();
+
+  const dataSummary = customers.map(c =>
+    c.name + " (" + c.segment + "): invoice " + c.invoice.id + " for " + fmtMoney(c.invoice.amount) +
+    ", " + c.invoice.daysOverdue + " days overdue. Pattern: " + c.memory.paymentPattern
+  ).join("\\n");
+  const auditSummary = state.auditTrail.map(a => a.time + " — " + a.customer + ": " + a.status + " (" + a.action + ")").join("\\n") || "No actions taken yet.";
+  const system = `You are Keeper, an autonomous AR agent for ${COMPANY}. Answer the finance user's question directly and concisely in plain text, no markdown headers, no JSON. Cite specific customers, amounts, or days overdue where relevant. If something isn't in the data given to you, say so plainly rather than guessing.`;
+  const user = "Account data:\\n" + dataSummary + "\\n\\nActions taken so far today:\\n" + auditSummary + "\\n\\nQuestion: " + question;
+
+  state.chatLoading = true;
+  render();
+  try{
+    const reply = await callClaude(system, user, 500);
+    state.chatLog.push({ role:"agent", text: reply.trim() });
+  } catch(err){
+    state.chatLog.push({ role:"agent", text: "I couldn't reach the model just now (" + err.message + "). Try again." });
+  } finally {
+    state.chatLoading = false;
+    render();
+  }
+}
+
+// ---------- Rendering ----------
+function render(){
+  document.getElementById("emptyState").style.display = state.worklist.length ? "none" : "block";
+  document.getElementById("mainGrid").style.display = state.worklist.length ? "grid" : "none";
+  document.getElementById("lowerGrid").style.display = state.worklist.length ? "grid" : "none";
+
+  if(state.briefingSummary){
+    const box = document.getElementById("briefingBox");
+    box.style.display = "block";
+    box.innerHTML = '<div class="eyebrow">Morning briefing</div>' +
+      '<div>' + escapeHtml(state.briefingSummary) + '</div>' +
+      '<div class="cash">' + escapeHtml(state.cashNote || "") + '</div>';
+  }
+
+  // KPIs
+  if(state.worklist.length){
+    const autoCount = state.worklist.filter(i => i.status === "auto_executed" || i.status === "approved").length;
+    const pct = Math.round((autoCount / state.worklist.length) * 100);
+    document.getElementById("kpiAuto").textContent = pct + "%";
+    document.getElementById("kpiPending").textContent = state.worklist.filter(i => i.status === "pending_approval").length;
+  }
+
+  renderWorklist();
+  renderDetail();
+  renderQueue();
+  renderAudit();
+  renderChat();
+}
+
+function renderWorklist(){
+  const body = document.getElementById("worklistBody");
+  document.getElementById("worklistCount").textContent = state.worklist.length + " items";
+  body.innerHTML = "";
+  state.worklist.forEach(item => {
+    const key = item.id + "|" + item.invoice_ref;
+    const div = document.createElement("div");
+    div.className = "worklist-item" + (state.selectedId === key ? " selected" : "");
+    div.onclick = () => { state.selectedId = key; render(); };
+    div.innerHTML = `
+      <div class="wi-top">
+        <span class="wi-name">${escapeHtml(item.customer)}</span>
+        <span class="wi-amt">${fmtMoney(item.amount)}</span>
+      </div>
+      <div class="wi-action">${escapeHtml(item.action)} · ${item.days_overdue}d overdue</div>
+      <div class="wi-meta">
+        <span class="tier-badge tier-${item.tier}">${item.tier}</span>
+        <span class="status-pill status-${item.status}">${statusLabel(item.status)}</span>
+      </div>`;
+    body.appendChild(div);
+  });
+}
+
+function statusLabel(s){
+  return { auto_executed:"Auto-executed", pending_approval:"Needs sign-off", approved:"Approved", rejected:"Rejected", flagged:"Flagged" }[s] || s;
+}
+
+function renderDetail(){
+  const body = document.getElementById("detailBody");
+  const item = state.worklist.find(i => (i.id + "|" + i.invoice_ref) === state.selectedId);
+  if(!item){
+    body.innerHTML = '<div class="detail-empty">Select an item from the worklist to see Keeper\\'s reasoning, account memory, and any drafted outreach.</div>';
+    return;
+  }
+  const customer = customers.find(c => c.id === item.id);
+  const key = item.id + "|" + item.invoice_ref;
+  const showStamp = state.stampFor === key;
+
+  let actionRow = "";
+  if(item.status === "pending_approval"){
+    actionRow = `
+      <div class="action-row">
+        ${showStamp ? `<div class="stamp show ${state.stampKind}">${state.stampKind === "approve" ? "Approved" : "Rejected"}</div>` : ""}
+        <button class="btn-approve" onclick="approveItem('${key}')">Approve & execute</button>
+        <button class="btn-reject" onclick="rejectItem('${key}')">Reject</button>
+      </div>`;
+  } else if(item.status === "approved" || item.status === "rejected"){
+    actionRow = `<div class="action-row"><span class="executed-note">${item.status === "approved" ? "Approved and executed by you at " + item.ts : "Rejected by you"}</span></div>`;
+  } else if(item.status === "auto_executed"){
+    actionRow = `<div class="action-row"><span class="executed-note">Executed automatically at ${item.ts} — ${item.tier} actions don't need sign-off</span></div>`;
+  } else if(item.status === "flagged"){
+    actionRow = `<div class="action-row"><span class="executed-note">L4 — posts to the ERP. Keeper flags this for finance to action manually; it never posts on its own.</span></div>`;
+  }
+
+  body.innerHTML = `
+    <div class="detail-head">
+      <div>
+        <h3>${escapeHtml(item.customer)}</h3>
+        <div class="detail-sub">${escapeHtml(customer ? customer.segment : "")} · ${escapeHtml(item.invoice_ref)} · ${fmtMoney(item.amount)} · ${item.days_overdue}d overdue</div>
+      </div>
+      <span class="tier-badge tier-${item.tier}" style="width:30px;height:30px;font-size:12px;">${item.tier}</span>
+    </div>
+
+    <div class="detail-section">
+      <div class="lbl">Recommended action</div>
+      <p>${escapeHtml(item.action)}</p>
+    </div>
+
+    <div class="detail-section">
+      <div class="lbl">Keeper's reasoning</div>
+      <p>${escapeHtml(item.reasoning)}</p>
+      <div class="confidence-row">
+        <div class="conf-track"><div class="conf-fill" style="width:${item.confidence}%;"></div></div>
+        <span class="conf-num">${item.confidence}% confidence</span>
+      </div>
+    </div>
+
+    ${customer ? `
+    <div class="detail-section">
+      <div class="lbl">Account memory</div>
+      <div class="memory-grid">
+        <div class="memory-item"><div class="lbl">Payment pattern</div><p>${escapeHtml(customer.memory.paymentPattern)}</p></div>
+        <div class="memory-item"><div class="lbl">Disputes</div><p>${escapeHtml(customer.memory.pastDisputes)}</p></div>
+        <div class="memory-item"><div class="lbl">Broken promises</div><p>${escapeHtml(customer.memory.brokenPromises)}</p></div>
+        <div class="memory-item"><div class="lbl">Last contact</div><p>${escapeHtml(customer.memory.lastContact)}</p></div>
+      </div>
+    </div>` : ""}
+
+    ${item.draft_message ? `
+    <div class="detail-section">
+      <div class="lbl">Drafted message</div>
+      <div class="draft-box">${escapeHtml(item.draft_message)}</div>
+    </div>` : ""}
+
+    ${actionRow}
+  `;
+}
+
+function renderQueue(){
+  const body = document.getElementById("queueBody");
+  const pending = state.worklist.filter(i => i.status === "pending_approval");
+  document.getElementById("queueCount").textContent = pending.length + " pending";
+  if(!pending.length){
+    body.innerHTML = '<div class="queue-empty">Nothing waiting on you right now.</div>';
+    return;
+  }
+  body.innerHTML = "";
+  pending.forEach(item => {
+    const key = item.id + "|" + item.invoice_ref;
+    const row = document.createElement("div");
+    row.className = "queue-item";
+    row.innerHTML = `
+      <div class="qi-main">
+        <div class="qi-name">${escapeHtml(item.customer)}</div>
+        <div class="qi-action">${escapeHtml(item.action)} · ${fmtMoney(item.amount)}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-approve" style="padding:6px 10px; font-size:12px;" onclick="approveItem('${key}')">Approve</button>
+        <button class="btn-reject" style="padding:6px 10px; font-size:12px;" onclick="rejectItem('${key}')">Reject</button>
+      </div>`;
+    body.appendChild(row);
+  });
+}
+
+function renderAudit(){
+  const body = document.getElementById("auditBody");
+  document.getElementById("auditCount").textContent = state.auditTrail.length + " entries";
+  if(!state.auditTrail.length){
+    body.innerHTML = '<div class="queue-empty">No actions logged yet.</div>';
+    return;
+  }
+  body.innerHTML = "";
+  state.auditTrail.forEach(a => {
+    const row = document.createElement("div");
+    row.className = "audit-row";
+    row.innerHTML = `
+      <div class="audit-time">${a.time}</div>
+      <div class="audit-main">
+        <div class="a-title"><b>${escapeHtml(a.customer)}</b> — ${escapeHtml(a.status)} · ${escapeHtml(a.action)} <span class="tier-badge tier-${a.tier}" style="width:16px;height:16px;font-size:8px;vertical-align:middle;">${a.tier}</span></div>
+        <div class="a-reason">${escapeHtml(a.reasoning)} (${a.confidence}% confidence)</div>
+      </div>`;
+    body.appendChild(row);
+  });
+}
+
+function renderChat(){
+  const log = document.getElementById("chatLog");
+  if(!state.chatLog.length && !state.chatLoading){
+    log.innerHTML = '<div class="chat-empty">Try: "What\\'s our cash position?" or "Which account is riskiest right now?"</div>';
+    return;
+  }
+  log.innerHTML = "";
+  state.chatLog.forEach(m => {
+    const div = document.createElement("div");
+    div.className = "chat-msg " + m.role;
+    div.innerHTML = `<div class="who">${m.role === "user" ? "You" : "Keeper"}</div><div>${escapeHtml(m.text)}</div>`;
+    log.appendChild(div);
+  });
+  if(state.chatLoading){
+    const div = document.createElement("div");
+    div.className = "chat-msg agent";
+    div.innerHTML = `<div class="who">Keeper</div><div>Thinking…</div>`;
+    log.appendChild(div);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function escapeHtml(s){
+  if(s === null || s === undefined) return "";
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+// ---------- Wire up ----------
+document.getElementById("briefBtn").addEventListener("click", generateBriefing);
+document.getElementById("askForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const input = document.getElementById("askInput");
+  const q = input.value.trim();
+  if(!q || state.chatLoading) return;
+  input.value = "";
+  askKeeper(q);
+});
+
+render();
+</script>
+</body>
+</html>
