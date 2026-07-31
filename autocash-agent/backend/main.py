@@ -11,10 +11,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from data import COMPANY, CUSTOMERS
+import keyring
+import keyring
+from keyrings.alt.file import PlaintextKeyring
+keyring.set_keyring(PlaintextKeyring())
 
-load_dotenv()
+# load_dotenv()
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = keyring.get_password("anthropic_key", "key")
+
 MODEL = "claude-sonnet-4-6"
 PORT = int(os.environ.get("PORT", 3001))
 
@@ -51,7 +56,7 @@ Return ONLY valid JSON, with no markdown fences and no commentary before or afte
 {{"briefing_summary": "2-3 sentence summary of the overall AR picture this morning", "cash_position_note": "1 sentence on what's collectible soon vs at risk", "worklist": [{{"id": "customer id you were given", "customer": "name", "invoice_ref": "id", "amount": 0, "days_overdue": 0, "tier": "L1", "action": "short label, under 6 words", "reasoning": "2-3 sentences, specific to this account", "confidence": 0, "draft_message": "the drafted message, or null if this action has no outreach"}}]}}"""
 
 
-async def call_claude(system: str, user_text: str, max_tokens: int = 1000) -> str:
+async def call_claude(system: str, user_text: str, max_tokens: int = 3000) -> str:
     async with httpx.AsyncClient(timeout=60) as client:
         res = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -108,7 +113,7 @@ async def post_briefing():
     ])
 
     try:
-        raw = await call_claude(BRIEFING_SYSTEM, "Here is today's open AR data:\n" + payload, 1400)
+        raw = await call_claude(BRIEFING_SYSTEM, "Here is today's open AR data:\n" + payload, 3000)
         parsed = json.loads(strip_fences(raw))
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))

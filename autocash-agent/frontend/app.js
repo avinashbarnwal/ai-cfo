@@ -26,7 +26,7 @@ async function apiPost(path, body) {
   });
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.error || ("Request failed: " + res.status));
+    throw new Error(errBody.detail || errBody.error || ("Request failed: " + res.status));
   }
   return res.json();
 }
