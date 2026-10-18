@@ -19,12 +19,14 @@ keyring.set_keyring(PlaintextKeyring())
 # load_dotenv()
 
 ANTHROPIC_API_KEY = keyring.get_password("anthropic_key", "key")
+# Needed only when the API key isn't scoped to a workspace (e.g. sk-ant-usr- keys).
+ANTHROPIC_WORKSPACE_ID = os.environ.get("ANTHROPIC_WORKSPACE_ID")
 
-MODEL = "claude-sonnet-4-6"
+MODEL = "claude-haiku-5-5"
 PORT = int(os.environ.get("PORT", 3001))
 
 if not ANTHROPIC_API_KEY:
-    print("WARNING: ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key.")
+    print("WARNING: ANTHROPIC_API_KEY is not set. Store it in the keyring (see README → Quickstart).")
 
 app = FastAPI(title="Keeper backend")
 
@@ -64,6 +66,7 @@ async def call_claude(system: str, user_text: str, max_tokens: int = 3000) -> st
                 "Content-Type": "application/json",
                 "x-api-key": ANTHROPIC_API_KEY or "",
                 "anthropic-version": "2023-06-01",
+                **({"anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID} if ANTHROPIC_WORKSPACE_ID else {}),
             },
             json={
                 "model": MODEL,

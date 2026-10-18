@@ -1,5 +1,5 @@
 // Point this at your backend. Defaults to local dev.
-const API = "http://localhost:3001";
+const API = "http://localhost:8765";
 
 const state = {
   briefingSummary: null, cashNote: null,
