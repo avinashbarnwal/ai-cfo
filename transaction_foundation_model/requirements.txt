@@ -1,0 +1,8 @@
+pandas>=2.1
+numpy>=1.26
+torch>=2.3
+transformers>=4.44
+safetensors>=0.4
+xgboost>=2.0
+scikit-learn>=1.4
+# optional GPU dataframes (set TFM_CUDF=1): cudf-cu12 from https://pypi.nvidia.com
